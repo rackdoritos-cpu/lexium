@@ -1,0 +1,86 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# === Ficheiros de ambiente na raiz ===
+.env
+.env.*
+!.env.example
+
+# === Bases de dados ===
+*.db
+*.sqlite
+*.sqlite3
+
+# === Ficheiros binários de tokens/caches ===
+*.bin
+msal_token_cache.bin
+
+# === Python compilado ===
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# === PIDs e ficheiros de runtime ===
+*.pid
+.pids/
+
+# === Backend — ficheiros de ambiente ===
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# === Backups e dumps ===
+*.backup
+*.backup-*
+*.dump
+*.dump.gz
+*.sql.gz
+backups/
+
+# === Uploads (ficheiros do utilizador) ===
+uploads/
+
+# === Logs ===
+*.log
+logs/
+backend/logs/
+
+# === Executáveis gerados ===
+*.exe
+
+# === Arquivos/exports gerados ===
+investmaster-pro-export-*.zip
+
+# === Screenshots e ficheiros temporários ===
+Captura de ecrã*.jpg
+Captura de ecrã*.png
+
+# === Ficheiros acidentais ===
+/r.json())
+
+# Dados reais e ficheiros de instância
+documento_corrigido.json
+metadata.json

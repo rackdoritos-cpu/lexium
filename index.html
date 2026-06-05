@@ -1,0 +1,225 @@
+
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InvestMaster Pro</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' http://localhost:* https://*; frame-src 'self' https://www.google.com https://maps.google.com;">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        // Handler global de erros para filtrar erros de extensões do Chrome
+        // Usar capture phase para interceptar antes de outros handlers
+        const errorHandler = function(event) {
+            // Filtrar erros de extensões do Chrome
+            const errorSource = event.filename || event.source || (event.target && event.target.src) || '';
+            const errorMessage = event.message || '';
+            const errorStack = (event.error && event.error.stack) || '';
+            const errorLine = event.lineno || '';
+            const errorCol = event.colno || '';
+            
+            // Verificar se é um erro de extensão do Chrome ou querySelector null
+            // Especialmente erros de contentscript.js linha 31
+            const hasContentscript = errorSource.includes('contentscript.js') || errorStack.includes('contentscript.js');
+            const hasQuerySelectorNull = errorMessage.includes('Cannot read properties of null') && errorMessage.includes('querySelector');
+            const isLine31 = errorLine === 31 || errorLine.toString() === '31';
+            
+            const isExtensionError = 
+                errorSource.includes('chrome-extension://') ||
+                hasContentscript ||
+                errorSource.includes('content.ts') ||
+                errorStack.includes('content.ts') ||
+                errorSource.includes('popup.js') ||
+                errorSource.includes('tat_popup.js') ||
+                errorMessage.includes('chrome-extension://') ||
+                errorMessage.includes('contentscript.js') ||
+                errorMessage.includes('content.ts') ||
+                errorMessage.includes('web_accessible_resources') ||
+                errorMessage.includes('Denying load of chrome-extension://') ||
+                errorMessage.includes('Failed to load resource') ||
+                errorMessage.includes('net::ERR_FAILED') ||
+                errorMessage.includes('Resources must be listed in the web_accessible_resources') ||
+                errorSource === 'chrome-extension://invalid/' ||
+                (hasQuerySelectorNull && (hasContentscript || isLine31)) ||
+                (errorStack.includes('contentscript.js')) ||
+                (errorStack.includes('content.ts')) ||
+                (errorMessage.includes('Cannot read properties of null') && 
+                 errorMessage.includes('querySelector') && 
+                 (hasContentscript || errorStack.includes('contentscript')));
+            
+            if (isExtensionError) {
+                // Prevenir propagação do erro completamente
+                event.preventDefault();
+                event.stopPropagation();
+                event.stopImmediatePropagation();
+                // Não mostrar o erro no console
+                return false;
+            }
+        };
+        
+        // Adicionar múltiplos listeners para garantir captura
+        window.addEventListener('error', errorHandler, true); // Capture phase
+        window.addEventListener('error', errorHandler, false); // Bubble phase também
+        
+        // Interceptar console.error ANTES de qualquer coisa
+        // Este deve ser o primeiro filtro a ser aplicado
+        const originalConsoleError = window.console.error || console.error;
+        const originalConsoleWarn = window.console.warn || console.warn;
+        const originalConsoleLog = window.console.log || console.log;
+        const originalConsoleInfo = window.console.info || console.info;
+        
+        window.console.error = function(...args) {
+            // Converter todos os argumentos para string para análise
+            const errorString = String(args.join(' '));
+            const errorObj = args.find(arg => typeof arg === 'object' && arg && (arg.stack || arg.message));
+            const errorStack = (errorObj && errorObj.stack) ? String(errorObj.stack) : '';
+            const errorMessage = (errorObj && errorObj.message) ? String(errorObj.message) : errorString;
+            
+            // Verificar TODOS os casos possíveis de contentscript.js
+            const hasContentscript = 
+                errorString.includes('contentscript.js') ||
+                errorString.includes('contentscript.js:31') ||
+                errorStack.includes('contentscript.js') ||
+                errorMessage.includes('contentscript.js');
+            
+            // Verificar erros de querySelector null (comum em extensões)
+            const hasQuerySelectorNull = 
+                (errorString.includes('Cannot read properties of null') || 
+                 errorMessage.includes('Cannot read properties of null')) &&
+                (errorString.includes('querySelector') || errorMessage.includes('querySelector'));
+            
+            // Verificar mensagens de conteúdo de extensões
+            const hasContentMessages = 
+                errorString.includes('[Content]') ||
+                errorString.includes('content.ts') ||
+                errorStack.includes('content.ts') ||
+                errorString.includes('Received message:') ||
+                errorString.includes('Handling message:') ||
+                errorString.includes('Getting tab HTML') ||
+                errorString.includes('Sending tab HTML') ||
+                errorString.includes('DETECT_BLACKBOARD_DOM');
+            
+            // Verificar erros específicos de recursos de extensões
+            const isExtensionResourceError = 
+                errorString.includes('Denying load of chrome-extension://') ||
+                errorString.includes('Resources must be listed in the web_accessible_resources') ||
+                errorString.includes('Failed to load resource') ||
+                errorString.includes('chrome-extension://invalid/') ||
+                errorString.includes('chrome-extension://aggiiclaiamajehmlfpkjmlbadmkledi') ||
+                errorString.includes('net::ERR_FAILED') ||
+                errorString.includes('popup.js') ||
+                errorString.includes('tat_popup.js') ||
+                errorString.includes('Understand this error'); // Mensagem padrão do Chrome DevTools
+            
+            // Verificar se é erro de extensão Chrome
+            const isChromeExtension = 
+                errorString.includes('chrome-extension://') ||
+                errorStack.includes('chrome-extension://') ||
+                errorString.includes('web_accessible_resources');
+            
+            // Bloquear se for qualquer erro relacionado a extensões
+            if (hasContentscript || 
+                hasContentMessages ||
+                (hasQuerySelectorNull && (hasContentscript || errorStack.includes('contentscript'))) ||
+                isChromeExtension ||
+                isExtensionResourceError) {
+                return; // BLOQUEAR COMPLETAMENTE - não mostrar
+            }
+            originalConsoleError.apply(console, args);
+        };
+        
+        window.console.warn = function(...args) {
+            const warnString = String(args.join(' '));
+            const isExtensionWarning = 
+                warnString.includes('contentscript.js') ||
+                warnString.includes('chrome-extension://') ||
+                warnString.includes('chrome-extension://aggiiclaiamajehmlfpkjmlbadmkledi') ||
+                warnString.includes('web_accessible_resources') ||
+                warnString.includes('Denying load of chrome-extension://') ||
+                warnString.includes('popup.js') ||
+                warnString.includes('tat_popup.js') ||
+                warnString.includes('Failed to load resource') ||
+                warnString.includes('net::ERR_FAILED') ||
+                warnString.includes('[Content]') ||
+                warnString.includes('content.ts') ||
+                warnString.includes('Understand this error');
+            
+            if (isExtensionWarning) {
+                return; // Bloquear
+            }
+            originalConsoleWarn.apply(console, args);
+        };
+
+        window.console.log = function(...args) {
+            const logString = String(args.join(' '));
+            const isExtensionLog =
+                logString.includes('[Content]') ||
+                logString.includes('content.ts') ||
+                logString.includes('contentscript.js') ||
+                logString.includes('chrome-extension://') ||
+                logString.includes('popup.js') ||
+                logString.includes('tat_popup.js') ||
+                logString.includes('web_accessible_resources') ||
+                logString.includes('DETECT_BLACKBOARD_DOM') ||
+                logString.includes('GET_TAB_HTML') ||
+                logString.includes('Received message:') ||
+                logString.includes('Handling message:') ||
+                logString.includes('Getting tab HTML') ||
+                logString.includes('Sending tab HTML');
+            if (isExtensionLog) {
+                return;
+            }
+            originalConsoleLog.apply(console, args);
+        };
+
+        window.console.info = function(...args) {
+            const infoString = String(args.join(' '));
+            const isExtensionInfo =
+                infoString.includes('[Content]') ||
+                infoString.includes('content.ts') ||
+                infoString.includes('contentscript.js') ||
+                infoString.includes('chrome-extension://') ||
+                infoString.includes('popup.js') ||
+                infoString.includes('tat_popup.js') ||
+                infoString.includes('web_accessible_resources') ||
+                infoString.includes('DETECT_BLACKBOARD_DOM') ||
+                infoString.includes('GET_TAB_HTML');
+            if (isExtensionInfo) {
+                return;
+            }
+            originalConsoleInfo.apply(console, args);
+        };
+
+        // Capturar erros não tratados (promises rejeitadas)
+        window.addEventListener('unhandledrejection', function(event) {
+            // Filtrar rejeições de extensões
+            const reason = event.reason;
+            const reasonString = String(reason || '');
+            const reasonStack = (reason && typeof reason === 'object' && reason.stack) ? reason.stack : '';
+            
+            const isExtensionRejection = 
+                reasonString.includes('chrome-extension://') ||
+                reasonString.includes('contentscript.js') ||
+                reasonString.includes('listener indicated an asynchronous response') ||
+                reasonStack.includes('chrome-extension://') ||
+                reasonStack.includes('contentscript.js') ||
+                (reasonString.includes('Cannot read properties of null') && 
+                 reasonString.includes('querySelector'));
+            
+            if (isExtensionRejection) {
+                // Prevenir que o erro seja mostrado no console
+                event.preventDefault();
+                event.stopPropagation();
+                // Retornar false para indicar que o erro foi tratado
+                return false;
+            }
+        });
+    </script>
+</head>
+<body class="text-slate-900 overflow-hidden">
+    <div id="root" class="h-screen w-screen flex flex-col"></div>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+{
+  "name": "investmaster-pro---integrated-asset-management",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "kill-port": "node scripts/kill-port.js",
+    "kill-port:windows": "node scripts/kill-port-windows.js",
+    "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"blue,green\" \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "backend\\start-backend.bat",
+    "dev:frontend": "npm run kill-port:windows && vite",
+    "dev:legacy": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@google/genai": "^1.34.0",
+    "@types/react-grid-layout": "^1.3.6",
+    "lucide-react": "^0.562.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "react-grid-layout": "^2.1.1",
+    "react-router-dom": "^7.11.0",
+    "recharts": "^3.6.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "autoprefixer": "^10.4.23",
+    "concurrently": "^9.1.2",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.19",
+    "terser": "^5.44.1",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0"
+  }
+}
